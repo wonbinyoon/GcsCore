@@ -1,6 +1,6 @@
 # GcsCore (Ground Control Station Core)
 
-**GcsCore**는 Windows 환경에서 지상 관제 시스템(GCS, Ground Control Station)을 개발하기 위한 고성능 C++/WinRT 라이브러리입니다. 드론, 로봇 등의 무인 이동체와의 시리얼 통신, 데이터 파싱, 로깅 및 재생(Replay) 기능을 제공합니다.
+**GcsCore**는 Windows 환경에서 지상 관제 시스템(GCS, Ground Control Station)을 개발하기 위한 고성능 C++/WinRT 라이브러리입니다. 로켓, 드론, 로봇 등의 무인 이동체와의 시리얼 통신, 데이터 파싱, 로깅 및 재생(Replay) 기능을 제공합니다.
 
 ## 🚀 주요 기능 (Features)
 
@@ -136,4 +136,4 @@ GcsCore/
 
 ## 📝 라이선스 (License)
 
-[MIT License](LICENSE)
+[MIT License](LICENSE.txt)
