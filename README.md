@@ -30,7 +30,7 @@
 
 1.  **리포지토리 클론:**
     ```bash
-    git clone https://github.com/your-repo/GcsCore.git
+    git clone https://github.com/wonbinyoon/GcsCore.git
     ```
 2.  **Visual Studio에서 열기:**
     `GcsCore.sln` 파일을 엽니다.
