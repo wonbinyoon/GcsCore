@@ -41,10 +41,20 @@ namespace gcs::logging
   }
 }
 
-#define GCS_LOG_TRACE(...) if (auto l = gcs::logging::GetLogger()) l->trace(__VA_ARGS__)
-#define GCS_LOG_DEBUG(...) if (auto l = gcs::logging::GetLogger()) l->debug(__VA_ARGS__)
-#define GCS_LOG_INFO(...)  if (auto l = gcs::logging::GetLogger()) l->info(__VA_ARGS__)
-#define GCS_LOG_WARN(...)  if (auto l = gcs::logging::GetLogger()) l->warn(__VA_ARGS__)
-#define GCS_LOG_ERROR(...) if (auto l = gcs::logging::GetLogger()) l->error(__VA_ARGS__)
+#define GCS_LOG_TRACE(...)                \
+  if (auto l = gcs::logging::GetLogger()) \
+  l->trace(__VA_ARGS__)
+#define GCS_LOG_DEBUG(...)                \
+  if (auto l = gcs::logging::GetLogger()) \
+  l->debug(__VA_ARGS__)
+#define GCS_LOG_INFO(...)                 \
+  if (auto l = gcs::logging::GetLogger()) \
+  l->info(__VA_ARGS__)
+#define GCS_LOG_WARN(...)                 \
+  if (auto l = gcs::logging::GetLogger()) \
+  l->warn(__VA_ARGS__)
+#define GCS_LOG_ERROR(...)                \
+  if (auto l = gcs::logging::GetLogger()) \
+  l->error(__VA_ARGS__)
 
 #endif // GCS_CORE_LOGGING_INTERNAL_H_

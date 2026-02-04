@@ -134,7 +134,7 @@ namespace gcs::transport
     writer.WriteBytes(data);
 
     std::uint32_t bytes_written = co_await writer.StoreAsync();
-    //co_await writer.FlushAsync();
+    // co_await writer.FlushAsync();
     writer.DetachStream();
 
     GCS_LOG_DEBUG("Sent {} bytes", bytes_written);

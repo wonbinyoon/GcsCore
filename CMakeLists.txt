@@ -6,9 +6,6 @@ project(GcsCore VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Options
-option(GCS_BUILD_TESTS "Build unit tests" ON)
-
 # Find Packages (If using CMake native finders)
 # find_package(spdlog REQUIRED)
 
@@ -42,13 +39,4 @@ if(WIN32)
     target_link_libraries(GcsCore PRIVATE 
         runtimeobject.lib
     )
-endif()
-
-# Tests
-if(GCS_BUILD_TESTS)
-    enable_testing()
-    # Note: In a real scenario, you'd use FetchContent or find_package(GTest)
-    # add_executable(GcsCoreTests tests/test_signal.cpp)
-    # target_link_libraries(GcsCoreTests PRIVATE GcsCore GTest::gtest_main)
-    # add_test(NAME SignalTest COMMAND GcsCoreTests)
 endif()

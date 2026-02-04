@@ -81,16 +81,16 @@ namespace gcs::logging
   {
     on_opened_connection_ = serial.OnPortOpened.Connect(
         [this](const gcs::transport::SerialPortInfo &info)
-        { 
+        {
           GCS_LOG_INFO("Port opened: {}. Starting loggers.", info.name);
-          StartLogging(); 
+          StartLogging();
         });
 
     on_closed_connection_ = serial.OnPortClosed.Connect(
         [this](const gcs::transport::SerialPortInfo &info)
-        { 
+        {
           GCS_LOG_INFO("Port closed: {}. Stopping loggers.", info.name);
-          StopLogging(); 
+          StopLogging();
         });
 
     on_raw_ = serial.OnRawDataReceived.Connect(
@@ -134,7 +134,7 @@ namespace gcs::logging
     parsed_file_.open(parsed_path, std::ios::binary);
     if (parsed_file_.is_open())
     {
-       GCS_LOG_INFO("Started parsed logging: {}", parsed_path);
+      GCS_LOG_INFO("Started parsed logging: {}", parsed_path);
     }
     else
     {
