@@ -42,6 +42,9 @@
     <ClInclude Include="include\common\event.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="src\logging_internal.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\logging\binary_log_writer.cpp">
@@ -53,5 +56,8 @@
     <ClCompile Include="src\transport\serial_manager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

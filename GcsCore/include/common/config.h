@@ -1,33 +1,59 @@
-﻿#ifndef GCS_CORE_CONFIG_H_
-#define GCS_CORE_CONFIG_H_
+// Copyright 2026 윤원빈. All rights reserved.
+// Use of this source code is governed by a MIT-style license that can be
+// found in the LICENSE file.
+
+#ifndef GCS_CORE_COMMON_CONFIG_H_
+#define GCS_CORE_COMMON_CONFIG_H_
 
 #include <chrono>
 #include <cstdint>
 
+/**
+ * @namespace gcs::common
+ * @brief Common utilities and configuration constants.
+ */
 namespace gcs::common
 {
+
   // --- Serial Port Settings ---
 
-  /// @brief 시리얼 통신의 기본 보드레이트 (Baud Rate)
-  constexpr std::uint32_t kSerialBaudRate = 115200;
+  /**
+   * @brief Default baud rate for serial communication.
+   */
+  constexpr std::uint32_t kSerialBaudRate = 9600;
 
-  /// @brief 시리얼 읽기 작업의 타임아웃
-  constexpr std::chrono::milliseconds kSerialReadTimeout(10);
+  /**
+   * @brief Timeout for serial read operations.
+   */
+  constexpr std::chrono::milliseconds kSerialReadTimeout(100);
 
-  /// @brief 시리얼 쓰기 작업의 타임아웃
-  constexpr std::chrono::milliseconds kSerialWriteTimeout(10);
+  /**
+   * @brief Timeout for serial write operations.
+   */
+  constexpr std::chrono::milliseconds kSerialWriteTimeout(100);
+
+  /**
+   * @brief Buffer size for reading from the serial port.
+   */
+  constexpr std::uint32_t kSerialReadBufferSize = 64;
 
   // --- Replay Settings ---
 
-  /// @brief 로우 로그 리플레이 시 한 번에 읽어올 청크 크기 (바이트)
+  /**
+   * @brief Chunk size (in bytes) to read at once during raw log replay.
+   */
   constexpr size_t kRawLogReplayChunkSize = 64;
 
-  /// @brief 리플레이 시 허용되는 최대 지연 시간 (밀리초)
+  /**
+   * @brief Maximum allowed delay during replay in milliseconds.
+   */
   constexpr std::uint32_t kReplayMaxDelayMs = 1000;
 
-  /// @brief 리플레이 루프 내에서 CPU 점유율을 조절하기 위한 최소 수면 시간
+  /**
+   * @brief Minimum sleep time to control CPU usage within the replay loop.
+   */
   constexpr std::chrono::milliseconds kReplayBusyLoopSleep(1);
 
 } // namespace gcs::common
 
-#endif // GCS_CORE_CONFIG_H_
+#endif // GCS_CORE_COMMON_CONFIG_H_

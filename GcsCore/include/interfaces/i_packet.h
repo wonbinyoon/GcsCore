@@ -1,12 +1,21 @@
-﻿#ifndef GCS_CORE_I_PACKET_H_
-#define GCS_CORE_I_PACKET_H_
+﻿// Copyright 2026 윤원빈. All rights reserved.
+// Use of this source code is governed by a MIT-style license that can be
+// found in the LICENSE file.
 
-namespace gcs::communication
+#ifndef GCS_CORE_INTERFACES_I_PACKET_H_
+#define GCS_CORE_INTERFACES_I_PACKET_H_
+
+#include <cstdint>
+#include <vector>
+
+namespace gcs::interfaces
 {
+
   /**
    * @interface IPacket
-   * @brief 통신 패킷 인터페이스
-   * @details 모든 프로토콜 패킷 클래스가 구현해야 하는 기본 인터페이스입니다.
+   * @brief Communication packet interface.
+   *
+   * Base interface that all protocol packet classes must implement.
    */
   class IPacket
   {
@@ -14,17 +23,24 @@ namespace gcs::communication
     virtual ~IPacket() = default;
 
     /**
-     * @brief 패킷 데이터를 직렬화(Serialize)하여 바이트 벡터로 반환합니다.
-     * @return 직렬화된 바이트 데이터
+     * @brief Serializes packet data into a byte vector.
+     * @return Serialized byte data.
      */
     virtual std::vector<std::uint8_t> Serialize() const = 0;
-    
+
     /**
-     * @brief 패킷의 고유 ID를 반환합니다.
-     * @return 패킷 ID
+     * @brief Deserializes byte data into the packet object.
+     * @param data Raw byte data.
+     */
+    virtual void Deserialize(const std::vector<std::uint8_t> &data) = 0;
+
+    /**
+     * @brief Returns the unique ID of the packet.
+     * @return Packet ID.
      */
     virtual int GetId() const = 0;
   };
-}
 
-#endif // GCS_CORE_I_PACKET_H_
+} // namespace gcs::interfaces
+
+#endif // GCS_CORE_INTERFACES_I_PACKET_H_

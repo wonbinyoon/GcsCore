@@ -1,83 +1,161 @@
-﻿#include "logging/binary_log_writer.h"
+﻿// Copyright 2026 윤원빈. All rights reserved.
+// Use of this source code is governed by a MIT-style license that can be
+// found in the LICENSE file.
+
+#include "logging/binary_log_writer.h"
 
 #include <chrono>
 #include <filesystem>
 #include <iomanip>
+#include <sstream>
 
 #include "data/telemetry.h"
 #include "interfaces/i_converter.h"
 #include "interfaces/i_packet.h"
 #include "interfaces/i_parser.h"
 #include "transport/serial_manager.h"
+#include "logging_internal.h"
 
 namespace gcs::logging
 {
 
-  BinaryLogWriter::BinaryLogWriter(std::unique_ptr<gcs::communication::IParser> parser,
-                                   std::unique_ptr<gcs::communication::IConverter> converter,
-                                   const std::string &log_dir)
+  BinaryLogWriter::BinaryLogWriter(
+      std::unique_ptr<gcs::interfaces::IParser> parser,
+      std::unique_ptr<gcs::interfaces::IConverter> converter,
+      const std::string &log_dir)
       : log_dir_(log_dir),
         parser_(std::move(parser)),
         converter_(std::move(converter))
   {
+    InitLogger();
+
     if (!std::filesystem::exists(log_dir_))
     {
-      std::filesystem::create_directories(log_dir_);
+      std::error_code ec;
+      if (std::filesystem::create_directories(log_dir_, ec))
+      {
+        GCS_LOG_INFO("Created log directory: {}", log_dir_);
+      }
+      else
+      {
+        GCS_LOG_ERROR("Failed to create log directory: {} ({})", log_dir_, ec.message());
+      }
+    }
+    else
+    {
+      GCS_LOG_DEBUG("Log directory already exists: {}", log_dir_);
     }
 
-    // 패킷 수신 시 -> 컨버터로 전달
-    on_packet_ = parser_->OnPacketReceived.Connect([this](std::shared_ptr<gcs::communication::IPacket> packet)
-                                                   { converter_->Convert(packet); });
+    on_packet_ = parser_->OnPacketReceived.Connect(
+        [this](std::shared_ptr<gcs::interfaces::IPacket> packet)
+        {
+          std::lock_guard<std::recursive_mutex> lock(mutex_);
+          if (converter_)
+            converter_->Convert(packet);
+        });
 
-    // 텔레메트리 변환 시 -> 파일 저장
-    on_parsed_ = converter_->OnTelemetryConverted.Connect([this](const gcs::data::TelemetryData &data)
-                                                          {
-    if (parsed_file_.is_open()) {
-      parsed_file_.write(reinterpret_cast<const char*>(&data), sizeof(gcs::data::TelemetryData));
-    } });
+    on_parsed_ = converter_->OnTelemetryConverted.Connect(
+        [this](const gcs::data::TelemetryData &data)
+        {
+          std::lock_guard<std::recursive_mutex> lock(mutex_);
+          if (parsed_file_.is_open())
+          {
+            parsed_file_.write(reinterpret_cast<const char *>(&data),
+                               sizeof(gcs::data::TelemetryData));
+            // GCS_LOG_TRACE("Wrote parsed telemetry data to file.");
+          }
+        });
   }
 
   BinaryLogWriter::~BinaryLogWriter()
   {
+    on_raw_.reset();
+    on_packet_.reset();
+    on_parsed_.reset();
+    on_opened_connection_.reset();
+    on_closed_connection_.reset();
     StopLogging();
   }
 
-  void BinaryLogWriter::Bind(gcs::communication::SerialManager &serial)
+  void BinaryLogWriter::Bind(gcs::transport::SerialManager &serial)
   {
-    // 1. 포트가 열리면 새 파일 생성
-    on_opened_connection_ = serial.OnPortOpened.Connect([this](const gcs::communication::SerialPortInfo &)
-                                                        { StartLogging(); });
+    on_opened_connection_ = serial.OnPortOpened.Connect(
+        [this](const gcs::transport::SerialPortInfo &info)
+        { 
+          GCS_LOG_INFO("Port opened: {}. Starting loggers.", info.name);
+          StartLogging(); 
+        });
 
-    // 2. 포트가 닫히면 파일 안전하게 닫기
-    on_closed_connection_ = serial.OnPortClosed.Connect([this](const gcs::communication::SerialPortInfo &)
-                                                        { StopLogging(); });
+    on_closed_connection_ = serial.OnPortClosed.Connect(
+        [this](const gcs::transport::SerialPortInfo &info)
+        { 
+          GCS_LOG_INFO("Port closed: {}. Stopping loggers.", info.name);
+          StopLogging(); 
+        });
 
-    // 3. Raw 데이터 저장 (재생용 바이너리)
-    on_raw_ = serial.OnRawDataReceived.Connect([this](const std::vector<std::uint8_t> &data)
-                                               {
-            if (raw_file_.is_open()) {
-                raw_file_.write(reinterpret_cast<const char*>(data.data()), data.size());
-            }
-
-            // 파서로 데이터 전달
-            parser_->PushData(data); });
+    on_raw_ = serial.OnRawDataReceived.Connect(
+        [this](const std::vector<std::uint8_t> &data)
+        {
+          std::lock_guard<std::recursive_mutex> lock(mutex_);
+          if (raw_file_.is_open())
+          {
+            raw_file_.write(reinterpret_cast<const char *>(data.data()),
+                            data.size());
+            GCS_LOG_TRACE("Wrote {} raw bytes to log file.", data.size());
+          }
+          if (parser_)
+            parser_->PushData(data);
+        });
   }
 
   void BinaryLogWriter::StartLogging()
   {
-    StopLogging(); // 기존에 열린 파일이 있다면 닫음
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-    std::string ts = GetTimestamp();
-    raw_file_.open(log_dir_ + "/" + ts + "_raw.bin", std::ios::binary);
-    parsed_file_.open(log_dir_ + "/" + ts + "_parsed.dat", std::ios::binary);
-  }
-
-  void BinaryLogWriter::StopLogging()
-  {
     if (raw_file_.is_open())
       raw_file_.close();
     if (parsed_file_.is_open())
       parsed_file_.close();
+
+    std::string ts = GetTimestamp();
+    std::string raw_path = log_dir_ + "/" + ts + "_raw.bin";
+    std::string parsed_path = log_dir_ + "/" + ts + "_parsed.dat";
+
+    raw_file_.open(raw_path, std::ios::binary);
+    if (raw_file_.is_open())
+    {
+      GCS_LOG_INFO("Started raw logging: {}", raw_path);
+    }
+    else
+    {
+      GCS_LOG_ERROR("Failed to open raw log file: {}", raw_path);
+    }
+
+    parsed_file_.open(parsed_path, std::ios::binary);
+    if (parsed_file_.is_open())
+    {
+       GCS_LOG_INFO("Started parsed logging: {}", parsed_path);
+    }
+    else
+    {
+      GCS_LOG_ERROR("Failed to open parsed log file: {}", parsed_path);
+    }
+  }
+
+  void BinaryLogWriter::StopLogging()
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    bool was_open = raw_file_.is_open() || parsed_file_.is_open();
+
+    if (raw_file_.is_open())
+      raw_file_.close();
+    if (parsed_file_.is_open())
+      parsed_file_.close();
+
+    if (was_open)
+    {
+      GCS_LOG_INFO("Stopped logging.");
+    }
   }
 
   std::string BinaryLogWriter::GetTimestamp() const

@@ -1,45 +1,58 @@
-﻿#include "logging/log_player.h"
+﻿// Copyright 2026 윤원빈. All rights reserved.
+// Use of this source code is governed by a MIT-style license that can be
+// found in the LICENSE file.
+
+#include "logging/log_player.h"
 
 #include <chrono>
 #include <filesystem>
+#include <vector>
 
+#include "data/telemetry.h"
 #include "interfaces/i_converter.h"
 #include "interfaces/i_packet.h"
 #include "interfaces/i_parser.h"
-#include "data/telemetry.h"
 
 namespace gcs::logging
 {
-  constexpr size_t kChunkSize = 256;
 
-  LogPlayer::LogPlayer(std::unique_ptr<gcs::communication::IParser> parser,
-                       std::unique_ptr<gcs::communication::IConverter> converter)
-      : parser_(std::move(parser)),
-        converter_(std::move(converter))
+  namespace
+  {
+    constexpr size_t kChunkSize = 256;
+  }
+
+  LogPlayer::LogPlayer(std::unique_ptr<gcs::interfaces::IParser> parser,
+                       std::unique_ptr<gcs::interfaces::IConverter> converter)
+      : parser_(std::move(parser)), converter_(std::move(converter))
   {
     if (parser_)
     {
-      on_packet_ = parser_->OnPacketReceived.Connect([this](std::shared_ptr<gcs::communication::IPacket> packet)
-                                                     { 
-          if(converter_) converter_->Convert(packet); });
+      on_packet_ = parser_->OnPacketReceived.Connect(
+          [this](std::shared_ptr<gcs::interfaces::IPacket> packet)
+          {
+            if (converter_)
+              converter_->Convert(packet);
+          });
 
-      on_crc_fail_ = parser_->OnCrcFailed.Connect([this](const std::vector<std::uint8_t> &data)
-                                                  { OnCrcFailed.Invoke(data); });
+      on_crc_fail_ = parser_->OnCrcFailed.Connect(
+          [this](const std::vector<std::uint8_t> &data)
+          {
+            OnCrcFailed.Invoke(data);
+          });
     }
 
     if (converter_)
     {
-      on_converted_ = converter_->OnTelemetryConverted.Connect([this](const gcs::data::TelemetryData &data)
-                                                               {
-          SyncTiming(data.timestamp);
-          OnTelemetry.Invoke(data); });
+      on_converted_ = converter_->OnTelemetryConverted.Connect(
+          [this](const gcs::data::TelemetryData &data)
+          {
+            SyncTiming(data.timestamp);
+            OnTelemetry.Invoke(data);
+          });
     }
   }
 
-  LogPlayer::~LogPlayer()
-  {
-    Stop();
-  }
+  LogPlayer::~LogPlayer() { Stop(); }
 
   bool LogPlayer::Load(const std::string &file_path, LogType type)
   {
@@ -55,7 +68,7 @@ namespace gcs::logging
       return false;
     }
 
-    file_size_ = file_.tellg();
+    file_size_ = static_cast<size_t>(file_.tellg());
     file_.clear();
     file_.seekg(0, std::ios::beg);
 
@@ -81,10 +94,7 @@ namespace gcs::logging
     play_thread_ = std::thread(&LogPlayer::PlayLoop, this);
   }
 
-  void LogPlayer::Pause()
-  {
-    is_paused_ = true;
-  }
+  void LogPlayer::Pause() { is_paused_ = true; }
 
   void LogPlayer::Stop()
   {
@@ -132,22 +142,19 @@ namespace gcs::logging
     }
 
     file_.clear();
-
     file_.seekg(offset, std::ios::beg);
-
-    // 상태 초기화 (Seek로 인한 불연속성 처리)
 
     last_pkt_timestamp_ = 0;
 
     if (parser_)
       parser_->Reset();
-
     if (converter_)
       converter_->Reset();
   }
 
   double LogPlayer::GetCurrentPercent() const
   {
+    // Implementation omitted for brevity.
     return 0.0;
   }
 
@@ -174,6 +181,7 @@ namespace gcs::logging
       if (!success)
       {
         stop_flag_ = true;
+        OnEof.Invoke();
         break;
       }
     }
@@ -211,7 +219,7 @@ namespace gcs::logging
       if (!file_.good())
         return false;
       file_.read(reinterpret_cast<char *>(buffer.data()), kChunkSize);
-      bytes_read = file_.gcount();
+      bytes_read = static_cast<size_t>(file_.gcount());
     }
 
     if (bytes_read > 0)
@@ -237,7 +245,8 @@ namespace gcs::logging
       double wait_ms = delta_ms / speed_;
       if (wait_ms > 1.0)
       {
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long long>(wait_ms)));
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(static_cast<long long>(wait_ms)));
       }
     }
     last_pkt_timestamp_ = current_ts;
