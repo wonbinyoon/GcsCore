@@ -113,6 +113,7 @@ namespace gcs::data
     Vec3 vel;                    ///< Velocity (m/s).
     Vec3 acc;                    ///< Acceleration (m/s^2).
     Quat quat;                   ///< Attitude quaternion (W, X, Y, Z).
+    Vec3 euler;                  ///< Attitude euler (roll, pitch, yaw).
     std::uint32_t rx_count = 0;  ///< Received packet count.
     std::uint32_t tx_count = 0;  ///< Transmitted packet count.
     std::uint8_t fsm = 0;        ///< Finite State Machine (FSM) state value.
